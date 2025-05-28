@@ -21,11 +21,11 @@ class Application(ctk.CTk):
         ctk.set_default_color_theme("blue")    
   
         self.title("Reconciliador de Inventário - HP")  
-        self.geometry("500x550")  # Tamanho fixo ajustado para 400x600  
+        self.geometry("400x550")  # 
         self.resizable(False, False)  
   
         # Cores personalizadas alinhadas com a paleta da HP  
-        self.hp_blue = "#12A3D8"  
+        self.hp_blue = "#0857C3"  
         self.light_gray = "#EDEDED"  
         self.text_black = "#000000"  
         self.text_white = "#FFFFFF"  
@@ -81,8 +81,8 @@ class Application(ctk.CTk):
                 # Obter o método de reamostragem adequado  
                 resample_method = self.get_resample_method()  
   
-                logo_image = logo_image.resize((150, 150), resample=resample_method)  
-                self.logo_photo = ctk.CTkImage(logo_image, size=(150, 150))  
+                logo_image = logo_image.resize((145, 145), resample=resample_method)  
+                self.logo_photo = ctk.CTkImage(logo_image, size=(145, 145))  
                 # Passar 'logo_frame' como primeiro argumento posicional  
                 logo_label = ctk.CTkLabel(logo_frame, image=self.logo_photo, text="", fg_color="transparent")  
                 logo_label.pack()  
@@ -316,18 +316,16 @@ class Application(ctk.CTk):
   
     
     def process_files(self, mb51_path, znfrep_path, cordof_path, output_folder, igi_path=None):
-        print("Iniciando o processamento dos arquivos...")  # Para debug
+
         # Ler os arquivos de Excel  
         df_MB51 = pd.read_excel(mb51_path)  
         df_ZNFREP = pd.read_excel(znfrep_path) 
         df_CORDOF = pd.read_csv(cordof_path, sep=";") 
-        print("Arquivos principais carregados com sucesso.")
       
+       # Validação para existencia do IGI.xlsx
         if igi_path:
             df_IGI = pd.read_excel(igi_path)
 
-        
-        
         # Função para converter para string e remover ".0"  
         def clean_string(value):  
             value = str(value)  
@@ -335,6 +333,8 @@ class Application(ctk.CTk):
                 value = value[:-2]  
             return value  
         
+
+        ####################################################### CORDOF ###############################################
         
 
         # Substituir "." por "," em colunas específicas  
@@ -418,7 +418,7 @@ class Application(ctk.CTk):
         df_CORDOF = df_CORDOF[~df_CORDOF["CFOP_CODIGO"].isin(cfop_codigo_excluir)]  
         
         # Adicionar coluna CHAVE_RECON  
-        df_CORDOF["CHAVE_RECON"] = df_CORDOF.apply(lambda row: f"{row['PLANTA']} ! {row['DANFE']} ! {row['MATERIAL']}", axis=1)  
+        df_CORDOF["CHAVE_RECON"] = df_CORDOF.apply(lambda row: f"{row['FILIAL']} | {row['DANFE']} | {row['MATERIAL']}", axis=1)  
 
         # Agrupar por DANFE e calcular a soma de QTD_AJJ  
         danfe_grouped = df_CORDOF.groupby("CHAVE_RECON", as_index=False).agg({"QTD_AJJ": "sum"}).rename(columns={"QTD_AJJ": "QTD_GROUPED"})  
@@ -439,7 +439,7 @@ class Application(ctk.CTk):
         df_CORDOF_grouped = df_CORDOF.groupby("CHAVE_RECON").agg({  
             "CTRL_SITUACAO_DOF": "max",  
             "NOP_CODIGO": "max",  
-            "MERC_CODIGO": "max",  
+            "MATERIAL": "max",  
             "IND_ENTRADA_SAIDA": "max",  
             "QTD_AJJ": "sum",  
             "DANFE": "max",  
@@ -449,7 +449,7 @@ class Application(ctk.CTk):
         }).reset_index() 
 
         df_CORDOF_grouped = df_CORDOF_grouped.rename(columns={  
-            "MERC_CODIGO": "PN_CORDOF",  
+            "MATERIAL": "PN_CORDOF",  
             "QTD_AJJ": "QTD_CORDOF",  
             "DANFE": "DANFE_CORDOF",  
             "HPB_OB_DEL_NUM": "DELIVERY_CORDOF"  
@@ -481,9 +481,9 @@ class Application(ctk.CTk):
     
         # Criar CHAVE_BASE no df_MB51 para agrupamento 
         df_MB51['CHAVE_GROUPED'] = df_MB51.apply(  
-            lambda row: f"{row['Plant']} ! {row['Material']} ! {row['Purchase order']} ! {row['Material Document']}"   
+            lambda row: f"{row['Plant']} | {row['Material']} | {row['Purchase order']} | {row['Material Document']}"   
             if row['Movement type'] in ['101', '102', '861', '862']  
-            else f"{row['Plant']} ! {row['Material']} ! {row['Reference']} ! {row['Material Document']}",  
+            else f"{row['Plant']} | {row['Material']} | {row['Reference']} | {row['Material Document']}",  
             axis=1  
         )  
     
@@ -507,9 +507,9 @@ class Application(ctk.CTk):
  
         # Criar CHAVE_BASE no df_ZNFREP (sem Quantity)  
         df_ZNFREP['CHAVE_GROUPED'] = df_ZNFREP.apply(  
-            lambda row: f"{row['Plant']} ! {row['Material']} ! {row['Purchase Order']} ! {row['Nfe/NFSe#']}"  
+            lambda row: f"{row['Plant']} | {row['Material']} | {row['Purchase Order']} | {row['Nfe/NFSe#']}"  
             if row['CFOP'] in ['1102/01']  
-            else f"{row['Plant']} ! {row['Material']} ! {row['Delivery Number']} ! {row['Nfe/NFSe#']}",  
+            else f"{row['Plant']} | {row['Material']} | {row['Delivery Number']} | {row['Nfe/NFSe#']}",  
             axis=1  
         )  
     
@@ -560,17 +560,17 @@ class Application(ctk.CTk):
         }).reset_index()
 
         df_MB51_grouped['CHAVE_MERGED'] = df_MB51_grouped.apply(  
-            lambda row: f"{row['Plant']} ! {row['Material']} ! {row['Purchase order']} ! {int(abs(row['Quantity']))}"   
+            lambda row: f"{row['Plant']} | {row['Material']} | {row['Purchase order']} | {int(abs(row['Quantity']))}"   
             if row['Movement type'] in ['101', '102', '861', '862']  
-            else f"{row['Plant']} ! {row['Material']} ! {row['Reference']} ! {int(abs(row['Quantity']))}",  
+            else f"{row['Plant']} | {row['Material']} | {row['Reference']} | {int(abs(row['Quantity']))}",  
             axis=1  
         ) 
 
         # Criar CHAVE_BASE no df_ZNFREP 
         df_ZNFREP_grouped['CHAVE_MERGED'] = df_ZNFREP_grouped.apply(  
-            lambda row: f"{row['Plant']} ! {row['Material']} ! {row['Purchase Order']} ! {int(abs(row['Quantity']))}"  
+            lambda row: f"{row['Plant']} | {row['Material']} | {row['Purchase Order']} | {int(abs(row['Quantity']))}"  
             if row['CFOP'] in ['1102/01']  
-            else f"{row['Plant']} ! {row['Material']} ! {row['Delivery Number']} ! {int(abs(row['Quantity']))}",  
+            else f"{row['Plant']} | {row['Material']} | {row['Delivery Number']} | {int(abs(row['Quantity']))}",  
             axis=1  
         )
 
@@ -736,9 +736,9 @@ class Application(ctk.CTk):
     
         # Atualizar a criação da CHAVE_RECON para incluir 'DI_Number' se necessário  
         df_MB51_grouped['CHAVE_RECON'] = df_MB51_grouped.apply(  
-            lambda row: f"{row['Plant']} ! {row['Nfe/NFSe#'].split('-')[0]} ! {row['Material']}"   
+            lambda row: f"{row['Plant']} | {row['Nfe/NFSe#'].split('-')[0]} | {row['Material']}"   
             if pd.notna(row['Nfe/NFSe#'])   
-            else f"{row['Plant']} ! {row['Nfe/NFSe#']} ! {row['Material']}",  
+            else f"{row['Plant']} | {row['Nfe/NFSe#']} | {row['Material']}",  
             axis=1  
         )  
 
@@ -752,20 +752,72 @@ class Application(ctk.CTk):
             "Reference": "max"  
         }).reset_index()
 
+        df_MB51_grouped = df_MB51_grouped.rename(columns={  
+            "Material": "PN_S4",  
+            "Quantity": "QTD_S4",  
+ 
+        })
+
+
+
+        ########################################################## IGI #########################################################
+
+
+        if igi_path:
+            df_IGI = pd.read_excel(igi_path)
+
+            planta_dict = {  
+            "K102": "BR20",  
+            "K118": "BR18", 
+            "BR18": "BR18",
+            "BR20": "BR20", 
+        }  
+
+            df_IGI["EMP_FIL_COD"] = df_IGI["EMP_FIL_COD"].astype(str)  
+            df_IGI["PLANTA"] = df_IGI["EMP_FIL_COD"].map(planta_dict)  
+
+            #Padronização do material #
+            df_IGI["PN_IGI"] = df_IGI["PRD_COD"].apply(lambda x: None if pd.isna(x) else "#".join([i for i in str(x).split(" ") if i != ""]))  
+
+            # Adicionar coluna CHAVE_RECON  
+            df_IGI["CHAVE_RECON"] = df_IGI.apply(lambda row: f"{row['PLANTA']} | {row['MOV_NUM_DOC']} | {row['PN_IGI']}", axis=1)
+
+            # Adicionar coluna QUANTIDADE_AJUSTADA
+            df_IGI["QTD_IGI"] = df_IGI.apply(lambda row: row["MOV_QTD"] * -1 if row["TRN_OPR_EST"] == "-" else row["MOV_QTD"], axis=1)  
+
+            df_IGI_grouped = df_IGI.groupby("CHAVE_RECON").agg({
+                "EMP_FIL_COD": "max",
+                "MOV_NUM_DOC": "max",
+                "PN_IGI": "max",
+                "QTD_IGI" : "sum"
+            }).reset_index()
+
+            chaves_igi = df_IGI_grouped[["CHAVE_RECON"]].drop_duplicates()
+
+      
 
         ########################################################### RECON ########################################################
         
         chaves_mb51 = df_MB51_grouped[["CHAVE_RECON"]].drop_duplicates()  
         chaves_cordof = df_CORDOF_grouped[["CHAVE_RECON"]].drop_duplicates() 
 
-        chaves_unidas = pd.concat([chaves_mb51, chaves_cordof]).drop_duplicates().reset_index(drop=True) 
+        if igi_path:
+            chaves_unidas = pd.concat([chaves_mb51, chaves_cordof, chaves_igi]).drop_duplicates().reset_index(drop=True) 
+        else:
+            chaves_unidas = pd.concat([chaves_mb51, chaves_cordof]).drop_duplicates().reset_index(drop=True)
 
         chaves_unidas["CHAVE_RECON"] = chaves_unidas["CHAVE_RECON"].str.strip()  
         chaves_unidas = chaves_unidas[chaves_unidas["CHAVE_RECON"].notna() & (chaves_unidas["CHAVE_RECON"] != "")]  
 
-        df_RECON = chaves_unidas \
-            .merge(df_MB51_grouped, on="CHAVE_RECON", how="left") \
-            .merge(df_CORDOF_grouped, on="CHAVE_RECON", how="left")
+        if igi_path:
+            df_RECON = chaves_unidas \
+                .merge(df_MB51_grouped, on="CHAVE_RECON", how="left") \
+                .merge(df_CORDOF_grouped, on="CHAVE_RECON", how="left") \
+                .merge(df_IGI_grouped, on="CHAVE_RECON", how="left")
+        else:
+            df_RECON = chaves_unidas \
+                .merge(df_MB51_grouped, on="CHAVE_RECON", how="left") \
+                .merge(df_CORDOF_grouped, on="CHAVE_RECON", how="left")
 
         # Renomear colunas
         df_RECON = df_RECON.rename(columns={
@@ -1183,47 +1235,88 @@ class Application(ctk.CTk):
         # Aplicar a função e criar uma nova coluna 'TRN_Mapped'  
         df_RECON['NOTES'] = df_RECON['NOP_CODIGO'].apply(get_notes)
 
-        def get_status(row):  
-            if 'Mov Zero' in row['CHAVE_RECON']:  
-                return 'Mov Zero'  
-            elif row['NOTES'] == 'NÃO ENTRA NO IGI':  
-                return 'NÃO ENTRA NO IGI'  
-            elif 'Qnt Zero' in row['CHAVE_RECON']:  
-                return 'Qnt Zero'  
-            elif 'MERGED ZERO' in row['CHAVE_RECON']:  
-                return 'Chave Zerada'  
-            elif 'Conversão' in row['CHAVE_RECON']:  
-                return 'Conversão'  
-            elif row['DANFE_ZERADA'] == 'X':  
-                return 'Danfe Zerada'  
-            elif row['DELIVERY_ZERADA'] == 'X':  
-                return 'Delivery Zerada'  
-            elif pd.isna(row['PN_CORDOF']) and not pd.isna(row['PN_S4']):  
-                return 'Apenas S4'  
-            elif not pd.isna(row['PN_CORDOF']) and pd.isna(row['PN_S4']):  
-                return 'Apenas CORDOF'  
-            elif row['DIF_QNT'] == 0:  
-                return 'Recon OK'  
-            else:  
-                return 'Totais com Diferença'  
-        
-        df_RECON['STATUS'] = df_RECON.apply(get_status, axis=1)  
+        # Constantes simbólicas para facilitar manutenção
+        STATUS_MOV_ZERO = 'Mov Zero'
+        STATUS_NAO_ENTRA_IGI = 'NÃO ENTRA NO IGI'
+        STATUS_QNT_ZERO = 'Qnt Zero'
+        STATUS_CHAVE_ZERADA = 'Chave Zerada'
+        STATUS_CONVERSAO = 'Conversão'
+        STATUS_DANFE_ZERADA = 'Danfe Zerada'
+        STATUS_DELIVERY_ZERADA = 'Delivery Zerada'
+        STATUS_APENAS_S4 = 'Apenas S4'
+        STATUS_APENAS_CORDOF = 'Apenas CORDOF'
+        STATUS_RECON_OK = 'Recon OK'
+        STATUS_DIFERENCA = 'Totais com Diferença'
 
-        final_columns = ["CHAVE_RECON", "DANFE_S4", "DANFE_CORDOF", "CTRL_SITUACAO_DOF", "IND_ENTRADA_SAIDA",  
-                 "PLANTA_S4", "Movement type", "TRN", "Purchase Order_S4", "Reference_S4", "NOTES",   
-                 "PN_S4", "PN_CORDOF", "QTD_S4", "QTD_CORDOF", "DIF_QNT", "STATUS", "NOP_CODIGO",   
-                 "DELIVERY_CORDOF", "DELIVERY_ZERADA", "DANFE_ZERADA"]  
-  
+        def get_status(row: pd.Series) -> str:
+            chave = row.get('CHAVE_RECON', '')
+            notes = row.get('NOTES', '')
+            danfe_zerada = row.get('DANFE_ZERADA', '')
+            delivery_zerada = row.get('DELIVERY_ZERADA', '')
+            pn_cordof = row.get('PN_CORDOF')
+            pn_s4 = row.get('PN_S4')
+            dif_qnt = row.get('DIF_QNT', None)
+
+            if 'Mov Zero' in chave:
+                return STATUS_MOV_ZERO
+            elif notes == STATUS_NAO_ENTRA_IGI:
+                return STATUS_NAO_ENTRA_IGI
+            elif 'Qnt Zero' in chave:
+                return STATUS_QNT_ZERO
+            elif 'MERGED ZERO' in chave:
+                return STATUS_CHAVE_ZERADA
+            elif 'Conversão' in chave:
+                return STATUS_CONVERSAO
+            elif danfe_zerada == 'X':
+                return STATUS_DANFE_ZERADA
+            elif delivery_zerada == 'X':
+                return STATUS_DELIVERY_ZERADA
+            elif pd.isna(pn_cordof) and not pd.isna(pn_s4):
+                return STATUS_APENAS_S4
+            elif not pd.isna(pn_cordof) and pd.isna(pn_s4):
+                return STATUS_APENAS_CORDOF
+            elif dif_qnt == 0:
+                return STATUS_RECON_OK
+            else:
+                return STATUS_DIFERENCA
+
+        # Aplicação da função ao DataFrame
+        df_RECON['STATUS'] = df_RECON.apply(get_status, axis=1)
+
+
+        #COLUNA UNICA PARA MATERIAL        
+        if igi_path:
+            df_RECON['MATERIAL'] = (
+            df_RECON['PN_S4']
+            .combine_first(df_RECON['PN_CORDOF'])
+            .combine_first(df_RECON['PN_IGI'])
+        )
+
+        else:
+            df_RECON['MATERIAL'] = df_RECON['PN_S4'].combine_first(df_RECON['PN_CORDOF'])
+
+        if igi_path:
+            final_columns = ["CHAVE_RECON", "CTRL_SITUACAO_DOF", "IND_ENTRADA_SAIDA"
+                    , "Movement type", "TRN", "NOP_CODIGO","NOTES",  "Purchase Order_S4", "Reference_S4",  
+                    "MATERIAL", "QTD_IGI","QTD_S4", "QTD_CORDOF", "DIF_QNT","STATUS",  
+                    "DELIVERY_CORDOF", "DELIVERY_ZERADA", "DANFE_ZERADA"]  
+        else:
+            final_columns = ["CHAVE_RECON", "CTRL_SITUACAO_DOF", "IND_ENTRADA_SAIDA"
+                    , "Movement type", "TRN", "NOP_CODIGO","NOTES",  "Purchase Order_S4", "Reference_S4",  
+                    "MATERIAL","QTD_S4", "QTD_CORDOF", "DIF_QNT","STATUS",  
+                    "DELIVERY_CORDOF", "DELIVERY_ZERADA", "DANFE_ZERADA"] 
+    
         df_RECON = df_RECON[final_columns] 
     
-        output_file = os.path.join(output_folder, "Recon Lógicos.xlsx")  
+        output_file = os.path.join(output_folder, "RECON LÓGICOS.xlsx")  
         with pd.ExcelWriter(output_file) as writer:  
             # Salvar cada DataFrame em uma folha diferente  
-            df_MB51_grouped.to_excel(writer, sheet_name='MB51_GROUP', index=False)  
-            df_ZNFREP_grouped.to_excel(writer, sheet_name='ZNFREP_GROUP', index=False)  
-            df_CORDOF_grouped.to_excel(writer, sheet_name='CORDOF', index=False)  
+            df_MB51_grouped.to_excel(writer, sheet_name='MB51_GROUPED', index=False)  
+            df_ZNFREP_grouped.to_excel(writer, sheet_name='ZNFREP_GROUPED', index=False)  
+            df_CORDOF_grouped.to_excel(writer, sheet_name='CORDOF_GROUPED', index=False)
+            if igi_path:
+                df_IGI_grouped.to_excel(writer, sheet_name='IGI_GROUPED', index=False)   
             df_RECON.to_excel(writer, sheet_name='RECON', index=False)
-            print('teeeeeste')
     
         print("Processamento concluído e arquivos salvos com sucesso.")    
   
