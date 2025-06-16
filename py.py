@@ -418,7 +418,7 @@ class Application(ctk.CTk):
         df_CORDOF = df_CORDOF[~df_CORDOF["CFOP_CODIGO"].isin(cfop_codigo_excluir)]  
         
         # Adicionar coluna CHAVE_RECON  
-        df_CORDOF["CHAVE_RECON"] = df_CORDOF.apply(lambda row: f"{row['FILIAL']} | {row['DANFE']} | {row['MATERIAL']}", axis=1)  
+        df_CORDOF["CHAVE_RECON"] = df_CORDOF.apply(lambda row: f"{row['PLANTA']} | {row['DANFE']} | {row['MATERIAL']}", axis=1)  
 
         # Agrupar por DANFE e calcular a soma de QTD_AJJ  
         danfe_grouped = df_CORDOF.groupby("CHAVE_RECON", as_index=False).agg({"QTD_AJJ": "sum"}).rename(columns={"QTD_AJJ": "QTD_GROUPED"})  
@@ -732,8 +732,8 @@ class Application(ctk.CTk):
     
         # Aplicar as funções às colunas  
         df_MB51_grouped['Nfe/NFSe#'] = df_MB51_grouped['Nfe/NFSe#'].apply(tratar_ajuste_scrap)   
-        df_MB51_grouped['Nfe/NFSe#'] = df_MB51_grouped['Nfe/NFSe#'].apply(padronizar_nfe_nfse)   
-    
+        df_MB51_grouped['Nfe/NFSe#'] = df_MB51_grouped['Nfe/NFSe#'].apply(padronizar_nfe_nfse) 
+
         # Atualizar a criação da CHAVE_RECON para incluir 'DI_Number' se necessário  
         df_MB51_grouped['CHAVE_RECON'] = df_MB51_grouped.apply(  
             lambda row: f"{row['Plant']} | {row['Nfe/NFSe#'].split('-')[0]} | {row['Material']}"   
